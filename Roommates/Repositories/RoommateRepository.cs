@@ -35,7 +35,7 @@ namespace Roommates.Repositories
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
                     // Here we setup the command with the SQL we want to execute before we execute it.
-                    cmd.CommandText = "SELECT Id, FirstName, LastName, RentPortion, MoveInDate FROM Roommate";
+                    cmd.CommandText = "SELECT Id, FirstName, LastName, RentPortion, MoveInDate, RoomId FROM Roommate";
 
                     // Execute the SQL in the database and get a "reader" that will give us access to the data.
                     SqlDataReader reader = cmd.ExecuteReader();
@@ -65,6 +65,9 @@ namespace Roommates.Repositories
                         int MoveInDateColumnPosition = reader.GetOrdinal("MoveInDate");
                         DateTime movedInDate = reader.GetDateTime(MoveInDateColumnPosition);
 
+                        int RoomIdPosition = reader.GetOrdinal("RoomId");
+                        int roomId = reader.GetInt32(RoomIdPosition);
+
                         // Now let's create a new roommate object using the data from the database.
                         Roommate roommate = new Roommate
                         {
@@ -72,7 +75,8 @@ namespace Roommates.Repositories
                             Firstname = firstName,
                             Lastname = lastName,
                             RentPortion = rentPortion,
-                            MovedInDate = movedInDate
+                            MovedInDate = movedInDate,
+                            Room = null
                         };
 
                         // ...and add that room object to our list.
@@ -170,5 +174,40 @@ namespace Roommates.Repositories
         //        }
         //    }
         //}
+
+        public Roommate GetAllWithRoom(int roomId)
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $"SELECT roommate.FirstName, roommate.LastName, roommate.RentPortion, roommate.MoveInDate, room.Name FROM Roommate roommate JOIN Room room ON roommate.RoomId = room.Id WHERE roommate.roomId = {roomId}";
+                    cmd.Parameters.AddWithValue("@roomid", roomId);
+                    SqlDataReader reader = cmd.ExecuteReader();
+
+                    Roommate roommate = null;
+
+                    // If we only expect a single row back from the database, we don't need a while loop.
+                    if (reader.Read())
+                    {
+                        roommate = new Roommate
+                        {
+                            Id = roomId,
+                            Firstname = reader.GetString(reader.GetOrdinal("FirstName")),
+                            Lastname = reader.GetString(reader.GetOrdinal("LastName")),
+                            RentPortion = reader.GetInt32(reader.GetOrdinal("RentPortion")),
+                            MovedInDate = reader.GetDateTime(reader.GetOrdinal("MoveInDate")),
+                            
+
+                        };
+                    }
+
+                    reader.Close();
+
+                    return roommate;
+                }
+            }
+        }
     }
 }
