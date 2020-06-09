@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Roommates.Models;
 using Roommates.Repositories;
 
@@ -71,7 +72,7 @@ namespace Roommates
 
             foreach (Roommate roommate in allRoommates)
             {
-                Console.WriteLine($"{roommate.Id} {roommate.Firstname}");
+                Console.WriteLine($"{roommate.Firstname} {roommate.Lastname} has to pay {roommate.RentPortion}% of the rent. He/She moved in on {roommate.MovedInDate}");
             }
             Console.WriteLine("----------------------------");
             Console.WriteLine("Getting Roommates with Id 1");
@@ -80,6 +81,21 @@ namespace Roommates
 
             Console.WriteLine($"{singleRoommate.Id} {singleRoommate.Firstname} ");
 
+            List<Room> someRooms = roomRepo.GetAll();
+            Room aRoom = someRooms.First();
+
+            Roommate newRoommate = new Roommate
+            {
+                Firstname = "Jon",
+                Lastname = "Howton",
+                RentPortion = 0,
+                MovedInDate = DateTime.Now.AddDays(-3), 
+                Room = aRoom
+            };
+
+            roommateRepo.Insert(newRoommate);
+
+            
         }
 
     }

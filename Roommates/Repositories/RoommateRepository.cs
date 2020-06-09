@@ -143,38 +143,24 @@ namespace Roommates.Repositories
                 {
                     // These SQL parameters are annoying. Why can't we use string interpolation?
                     // ... sql injection attacks!!!
-                    cmd.CommandText = @"INSERT INTO Roommate (FirstName, LastName, RentPortion, MoveInDate) 
+                    cmd.CommandText = @"INSERT INTO Roommate (FirstName, LastName, RentPortion, MoveInDate, RoomId) 
                                          OUTPUT INSERTED.Id 
-                                         VALUES (@firstname, @lastName, @rentPortion, @moveInDate)";
-                    cmd.Parameters.AddWithValue("@firstname", roommate.Firstname);
-                    cmd.Parameters.AddWithValue("@lastname", roommate.Lastname);
-                    cmd.Parameters.AddWithValue("@rentPortion", roommate.RentPortion);
-                    cmd.Parameters.AddWithValue("@moveInDate", roommate.MovedInDate);
-                    int id = (int)cmd.ExecuteScalar();
+                                         VALUES (@FirstName, @LastName, @RentPortion, @MoveInDate, @RoomId)";
+                    cmd.Parameters.AddWithValue("@FirstName", roommate.Firstname);
+                    cmd.Parameters.AddWithValue("@LastName", roommate.Lastname);
+                    cmd.Parameters.AddWithValue("@RentPortion", roommate.RentPortion);
+                    cmd.Parameters.AddWithValue("@MoveInDate", roommate.MovedInDate);
+                    //I messed this part up :(
+                    cmd.Parameters.AddWithValue("@RoomId", roommate.Room.Id);
+                    int roommateId = (int)cmd.ExecuteScalar();
 
-                    roommate.Id = id;
+                    roommate.Id = roommateId;
                 }
             }
 
             // when this method is finished we can look in the database and see the new room.
         }
-        /// <summary>
-        ///  Delete the room with the given id
-        /// </summary>
-        //public void Delete(int id)
-        //{
-        //    using (SqlConnection conn = Connection)
-        //    {
-        //        conn.Open();
-        //        using (SqlCommand cmd = conn.CreateCommand())
-        //        {
-        //            cmd.CommandText = "DELETE FROM Room WHERE Id = @id";
-        //            cmd.Parameters.AddWithValue("@id", id);
-        //            cmd.ExecuteNonQuery();
-        //        }
-        //    }
-        //}
-
+        
         public Roommate GetAllWithRoom(int roomId)
         {
             using (SqlConnection conn = Connection)
@@ -182,7 +168,7 @@ namespace Roommates.Repositories
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = $"SELECT roommate.FirstName, roommate.LastName, roommate.RentPortion, roommate.MoveInDate, room.Name FROM Roommate roommate JOIN Room room ON roommate.RoomId = room.Id WHERE roommate.roomId = {roomId}";
+                    cmd.CommandText = @"SELECT roommate.FirstName, roommate.LastName, roommate.RentPortion, roommate.MoveInDate, room.Name, FROM Roommate roommate JOIN Room room ON roommate.RoomId = room.Id WHERE roommate.RoomId = @roomId";
                     cmd.Parameters.AddWithValue("@roomid", roomId);
                     SqlDataReader reader = cmd.ExecuteReader();
 
@@ -198,7 +184,13 @@ namespace Roommates.Repositories
                             Lastname = reader.GetString(reader.GetOrdinal("LastName")),
                             RentPortion = reader.GetInt32(reader.GetOrdinal("RentPortion")),
                             MovedInDate = reader.GetDateTime(reader.GetOrdinal("MoveInDate")),
-                            
+                 
+                            Room = new Room() 
+                            {
+                                Id = roomId,
+                                Name = reader.GetString(reader.GetOrdinal("Name")),
+                                
+                            }
 
                         };
                     }
