@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Roommates.Models;
+using System;
 using System.Collections.Generic;
 
 namespace Roommates.Repositories
@@ -8,16 +9,16 @@ namespace Roommates.Repositories
     ///  This class is responsible for interacting with Room data.
     ///  It inherits from the BaseRepository class so that it can use the BaseRepository's Connection property
     /// </summary>
-    public class RoomRepository : BaseRepository
+    public class RoommateRepository : BaseRepository
     {
         /// <summary>
         ///  When new RoomRespository is instantiated, pass the connection string along to the BaseRepository
         /// </summary>
-        public RoomRepository(string connectionString) : base(connectionString) { }
+        public RoommateRepository(string connectionString) : base(connectionString) { }
         /// <summary>
         ///  Get a list of all Rooms in the database
         /// </summary>
-        public List<Room> GetAll()
+        public List<Roommate> GetAll()
         {
             //  We must "use" the database connection.
             //  Because a database is a shared resource (other applications may be using it too) we must
@@ -34,13 +35,13 @@ namespace Roommates.Repositories
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
                     // Here we setup the command with the SQL we want to execute before we execute it.
-                    cmd.CommandText = "SELECT Id, Name, MaxOccupancy FROM Room";
+                    cmd.CommandText = "SELECT Id, FirstName, LastName, RentPortion, MoveInDate FROM Roommate";
 
                     // Execute the SQL in the database and get a "reader" that will give us access to the data.
                     SqlDataReader reader = cmd.ExecuteReader();
 
                     // A list to hold the rooms we retrieve from the database.
-                    List<Room> rooms = new List<Room>();
+                    List<Roommate> roommates = new List<Roommate>();
 
                     // Read() will return true if there's more data to read
                     while (reader.Read())
@@ -52,62 +53,72 @@ namespace Roommates.Repositories
                         // We user the reader's GetXXX methods to get the value for a particular ordinal.
                         int idValue = reader.GetInt32(idColumnPosition);
 
-                        int nameColumnPosition = reader.GetOrdinal("Name");
-                        string nameValue = reader.GetString(nameColumnPosition);
+                        int firstNameColumnPosition = reader.GetOrdinal("FirstName");
+                        string firstName = reader.GetString(firstNameColumnPosition);
 
-                        int maxOccupancyColunPosition = reader.GetOrdinal("MaxOccupancy");
-                        int maxOccupancy = reader.GetInt32(maxOccupancyColunPosition);
+                        int lastNameColumnPosition = reader.GetOrdinal("LastName");
+                        string lastName = reader.GetString(lastNameColumnPosition);
 
-                        // Now let's create a new room object using the data from the database.
-                        Room room = new Room
+                        int RentPortionColumnPosition = reader.GetOrdinal("RentPortion");
+                        int rentPortion = reader.GetInt32(RentPortionColumnPosition);
+
+                        int MoveInDateColumnPosition = reader.GetOrdinal("MoveInDate");
+                        DateTime movedInDate = reader.GetDateTime(MoveInDateColumnPosition);
+
+                        // Now let's create a new roommate object using the data from the database.
+                        Roommate roommate = new Roommate
                         {
                             Id = idValue,
-                            Name = nameValue,
-                            MaxOccupancy = maxOccupancy,
+                            Firstname = firstName,
+                            Lastname = lastName,
+                            RentPortion = rentPortion,
+                            MovedInDate = movedInDate
                         };
 
                         // ...and add that room object to our list.
-                        rooms.Add(room);
+                        roommates.Add(roommate);
                     }
 
                     // We should Close() the reader. Unfortunately, a "using" block won't work here.
                     reader.Close();
 
                     // Return the list of rooms who whomever called this method.
-                    return rooms;
+                    return roommates;
                 }
             }
         }
         /// <summary>
         ///  Returns a single room with the given id.
         /// </summary>
-        public Room GetById(int id)
+        public Roommate GetById(int id)
         {
             using (SqlConnection conn = Connection)
             {
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "SELECT Name, MaxOccupancy FROM Room WHERE Id = @id";
+                    cmd.CommandText = "SELECT FirstName, LastName, RentPortion, MoveInDate FROM Roommate WHERE Id = @id";
                     cmd.Parameters.AddWithValue("@id", id);
                     SqlDataReader reader = cmd.ExecuteReader();
 
-                    Room room = null;
+                    Roommate roommate = null;
 
                     // If we only expect a single row back from the database, we don't need a while loop.
                     if (reader.Read())
                     {
-                        room = new Room
+                        roommate = new Roommate
                         {
                             Id = id,
-                            Name = reader.GetString(reader.GetOrdinal("Name")),
-                            MaxOccupancy = reader.GetInt32(reader.GetOrdinal("MaxOccupancy")),
+                            Firstname = reader.GetString(reader.GetOrdinal("FirstName")),
+                            Lastname = reader.GetString(reader.GetOrdinal("LastName")),
+                            RentPortion = reader.GetInt32(reader.GetOrdinal("RentPortion")),
+                            MovedInDate = reader.GetDateTime(reader.GetOrdinal("MoveInDate"))
                         };
                     }
 
                     reader.Close();
 
-                    return room;
+                    return roommate;
                 }
 
 
@@ -119,7 +130,7 @@ namespace Roommates.Repositories
         ///   NOTE: This method sends data to the database,
         ///   it does not get anything from the database, so there is nothing to return.
         /// </summary>
-        public void Insert(Room room)
+        public void Insert(Roommate roommate)
         {
             using (SqlConnection conn = Connection)
             {
@@ -128,21 +139,36 @@ namespace Roommates.Repositories
                 {
                     // These SQL parameters are annoying. Why can't we use string interpolation?
                     // ... sql injection attacks!!!
-                    cmd.CommandText = @"INSERT INTO Room (Name, MaxOccupancy) 
+                    cmd.CommandText = @"INSERT INTO Roommate (FirstName, LastName, RentPortion, MoveInDate) 
                                          OUTPUT INSERTED.Id 
-                                         VALUES (@name, @maxOccupancy)";
-                    cmd.Parameters.AddWithValue("@name", room.Name);
-                    cmd.Parameters.AddWithValue("@maxOccupancy", room.MaxOccupancy);
+                                         VALUES (@firstname, @lastName, @rentPortion, @moveInDate)";
+                    cmd.Parameters.AddWithValue("@firstname", roommate.Firstname);
+                    cmd.Parameters.AddWithValue("@lastname", roommate.Lastname);
+                    cmd.Parameters.AddWithValue("@rentPortion", roommate.RentPortion);
+                    cmd.Parameters.AddWithValue("@moveInDate", roommate.MovedInDate);
                     int id = (int)cmd.ExecuteScalar();
 
-                    room.Id = id;
+                    roommate.Id = id;
                 }
             }
 
             // when this method is finished we can look in the database and see the new room.
         }
-
+        /// <summary>
+        ///  Delete the room with the given id
+        /// </summary>
+        //public void Delete(int id)
+        //{
+        //    using (SqlConnection conn = Connection)
+        //    {
+        //        conn.Open();
+        //        using (SqlCommand cmd = conn.CreateCommand())
+        //        {
+        //            cmd.CommandText = "DELETE FROM Room WHERE Id = @id";
+        //            cmd.Parameters.AddWithValue("@id", id);
+        //            cmd.ExecuteNonQuery();
+        //        }
+        //    }
+        //}
     }
-    
-
-    }
+}
