@@ -40,7 +40,7 @@ namespace Roommates
             };
 
             roomRepo.Insert(bathroom);
-            roomRepo.Delete(8);
+            //roomRepo.Delete(8);
 
             Console.WriteLine("-------------------------------");
             Console.WriteLine($"Added the new Room with id {bathroom.Id}");
